@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학교 파괴하기 미니게임</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            color: #ff4757;
+            font-size: 2.2rem;
+            text-shadow: 0 0 12px rgba(255, 71, 87, 0.6);
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: #a4b0be;
+            font-size: 0.95rem;
+        }
+
+        /* HP 바 구역 */
+        .status-container {
+            width: 320px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .hp-bar-bg {
+            width: 100%;
+            height: 24px;
+            background-color: #2f3542;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #57606f;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .hp-bar-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b81, #ff4757);
+            transition: width 0.1s ease-out;
+        }
+
+        .hp-text-info {
+            margin-top: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+            color: #dfe4ea;
+        }
+
+        /* 게임 스테이지 및 그래픽 */
+        .game-stage {
+            position: relative;
+            width: 340px;
+            height: 260px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            cursor: pointer;
+        }
+
+        .school-building {
+            width: 260px;
+            height: 190px;
+            background-color: #747d8c;
+            border: 4px solid #2f3542;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border-radius: 4px;
+            transition: transform 0.08s, filter 0.2s, opacity 0.3s;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+
+        .school-roof {
+            position: absolute;
+            top: -42px;
+            width: 110px;
+            height: 42px;
+            background-color: #57606f;
+            border: 3px solid #2f3542;
+            border-bottom: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #eccc68;
+            font-size: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .windows {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 25px;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        .window {
+            height: 40px;
+            background-color: #70a1ff;
+            border: 2px solid #ffffff;
+            border-radius: 2px;
+        }
+
+        .door {
+            width: 48px;
+            height: 55px;
+            background-color: #2f3542;
+            border: 2px solid #ffffff;
+            border-bottom: none;
+        }
+
+        /* 애니메이션 효과 */
+        .shake {
+            animation: shakeAnim 0.1s ease-in-out;
+        }
+
+        @keyframes shakeAnim {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-6px, 4px) rotate(-2deg); }
+            50% { transform: translate(6px, -4px) rotate(2deg); }
+            75% { transform: translate(-4px, -4px) rotate(-1deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: explode 0.45s ease-out forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(var(--dx), var(--dy)) scale(0);
+            }
+        }
+
+        .damage-text {
+            position: absolute;
+            color: #ff4757;
+            font-weight: 900;
+            font-size: 1.6rem;
+            pointer-events: none;
+            animation: floatUp 0.5s ease-out forwards;
+            text-shadow: 1px 1px 3px #000000;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-45px) scale(0.8); }
+        }
+
+        /* 컨트롤 버튼 */
+        .reset-btn {
+            margin-top: 35px;
+            padding: 12px 28px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #ffffff;
+            background-color: #ff4757;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .reset-btn:hover {
+            background-color: #ff6b81;
+        }
+
+        .reset-btn:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>💥 학교 폭파하기 게임</h1>
+        <p>학교 건물을 클릭하여 완전히 파괴해 보세요!</p>
+    </header>
+
+    <div class="status-container">
+        <div class="hp-bar-bg">
+            <div class="hp-bar-fill" id="hpBar"></div>
+        </div>
+        <div class="hp-text-info">건물 내구성: <span id="hpText">100</span> / 100</div>
+    </div>
+
+    <div class="game-stage" id="stage" onclick="attackSchool(event)">
+        <div class="school-building" id="school">
+            <div class="school-roof">학교</div>
+            <div class="windows">
+                <div class="window"></div>
+                <div class="window"></div>
+                <div class="window"></div>
+                <div class="window"></div>
+            </div>
+            <div class="door"></div>
+        </div>
+    </div>
+
+    <button class="reset-btn" onclick="resetGame()">학교 복구하기</button>
+
+    <script>
+        const maxHp = 100;
+        let currentHp = maxHp;
+        let isDestroyed = false;
+
+        const school = document.getElementById('school');
+        const hpBar = document.getElementById('hpBar');
+        const hpText = document.getElementById('hpText');
+
+        function attackSchool(event) {
+            if (isDestroyed) return;
+
+            // 클릭 시 HP 차감 (타격당 5 감소)
+            const damage = 5;
+            currentHp = Math.max(0, currentHp - damage);
+
+            // HP 상태 업데이트
+            const hpPercent = (currentHp / maxHp) * 100;
+            hpBar.style.width = hpPercent + '%';
+            hpText.textContent = currentHp;
+
+            // HP 잔여량에 따른 그래픽 시각 효과
+            if (currentHp < 70 && currentHp >= 30) {
+                school.style.filter = 'grayscale(40%) contrast(120%)';
+            } else if (currentHp < 30 && currentHp > 0) {
+                school.style.filter = 'grayscale(80%) contrast(160%) brightness(0.6)';
+            }
+
+            // 타격 시 건물 진동 효과
+            school.classList.remove('shake');
+            void school.offsetWidth; // 리플로우 강제 트리거
+            school.classList.add('shake');
+
+            // 클릭한 위치에 폭발 파티클 및 데미지 텍스트 연출
+            createExplosion(event.clientX, event.clientY);
+            showDamageText(event.clientX, event.clientY, damage);
+
+            // 파괴 완료 처리
+            if (currentHp === 0) {
+                isDestroyed = true;
+                school.style.transform = 'scaleY(0.05) translateY(600px)';
+                school.style.opacity = '0.2';
+                setTimeout(() => {
+                    alert('💥 학교가 완전히 파괴되었습니다!');
+                }, 250);
+            }
+        }
+
+        // 폭발 파티클 생성
+        function createExplosion(x, y) {
+            const colors = ['#ff4757', '#ffa502', '#eccc68', '#747d8c'];
+            for (let i = 0; i < 14; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+
+                const size = Math.random() * 10 + 6;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+
+                const dx = (Math.random() - 0.5) * 180;
+                const dy = (Math.random() - 0.5) * 180;
+                particle.style.setProperty('--dx', `${dx}px`);
+                particle.style.setProperty('--dy', `${dy}px`);
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 450);
+            }
+        }
+
+        // 데미지 텍스트 연출
+        function showDamageText(x, y, damage) {
+            const text = document.createElement('div');
+            text.classList.add('damage-text');
+            text.textContent = `-${damage}`;
+            text.style.left = `${x - 15}px`;
+            text.style.top = `${y - 25}px`;
+
+            document.body.appendChild(text);
+
+            setTimeout(() => text.remove(), 500);
+        }
+
+        // 게임 상태 리셋
+        function resetGame() {
+            currentHp = maxHp;
+            isDestroyed = false;
+            hpBar.style.width = '100%';
+            hpText.textContent = maxHp;
+            school.style.transform = 'none';
+            school.style.opacity = '1';
+            school.style.filter = 'none';
+        }
+    </script>
+</body>
+</html>
